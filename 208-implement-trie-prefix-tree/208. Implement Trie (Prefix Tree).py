@@ -2,7 +2,7 @@ class Trie:
 
     def __init__(self):
         self.seen = set()
-        self.prefix = defaultdict(list)
+        self.prefix = set()
 
     def insert(self, word: str) -> None:
         self.seen.add(word)
@@ -10,13 +10,13 @@ class Trie:
         curr = ""
         for c in word:
             curr+=c
-            self.prefix[curr].append(word)
+            self.prefix.add(curr)
 
     def search(self, word: str) -> bool:
         return word in self.seen
 
     def startsWith(self, prefix: str) -> bool:
-        return self.prefix[prefix]
+        return prefix in self.prefix
         
 
 

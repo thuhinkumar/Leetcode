@@ -12,7 +12,6 @@ public:
             while(s[end] == current && start<end){
                 end--;
             }
-            cout << "START: " << s[start] << " END: " << s[end] << endl;  
         }
         return end - start+1;
     }

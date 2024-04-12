@@ -3,7 +3,9 @@ class Solution:
         g = defaultdict(list)
 
         for ana in strs:
-            sorted_ana = sorted(ana)
-            g[str(sorted_ana)].append(ana)
+            key = [0]*26
+            for c in ana:
+                key[ord(c)-ord('a')]+=1
+            g[tuple(key)].append(ana)
         
         return g.values()

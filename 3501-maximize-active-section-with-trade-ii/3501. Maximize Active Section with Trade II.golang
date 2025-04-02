@@ -1,0 +1,125 @@
+import (
+	"math"
+)
+
+func maxActiveSectionsAfterTrade(s string, queries [][]int) []int {
+	n := len(s)
+	activeCount := 0
+	for _, ch := range s {
+		if ch == '1' {
+			activeCount++
+		}
+	}
+
+	// Step 1: Segment the string into (start, length) pairs
+	type Segment struct {
+		start  int
+		length int
+	}
+	var segments []Segment
+	start := 0
+	for i := 0; i < n; i++ {
+		if i == n-1 || s[i] != s[i+1] {
+			segments = append(segments, Segment{start, i - start + 1})
+			start = i + 1
+		}
+	}
+	segCount := len(segments)
+
+	const maxPower = 20
+	const INF = int(1e9)
+	const NEG_INF = -INF
+
+	// Step 2: Build RMQ table
+	rmq := make([][]int, maxPower)
+	for i := range rmq {
+		rmq[i] = make([]int, segCount)
+		for j := range rmq[i] {
+			rmq[i][j] = NEG_INF
+		}
+	}
+
+	for i := 0; i < segCount; i++ {
+		if s[segments[i].start] == '0' && i+2 < segCount {
+			rmq[0][i] = segments[i].length + segments[i+2].length
+		}
+	}
+
+	for p := 1; p < maxPower; p++ {
+		rangeLen := 1 << p
+		for i := 0; i+rangeLen <= segCount; i++ {
+			rmq[p][i] = max(rmq[p-1][i], rmq[p-1][i+(rangeLen>>1)])
+		}
+	}
+
+	// Binary search helper
+	bisectRight := func(segs []Segment, pos int) int {
+		lo, hi := 0, len(segs)
+		for lo < hi {
+			mid := (lo + hi) / 2
+			if segs[mid].start <= pos {
+				lo = mid + 1
+			} else {
+				hi = mid
+			}
+		}
+		return lo
+	}
+
+	// RMQ query
+	getMaxInRange := func(l, r int) int {
+		if l > r {
+			return NEG_INF
+		}
+		length := r - l + 1
+		p := int(math.Log2(float64(length)))
+		return max(rmq[p][l], rmq[p][r-(1<<p)+1])
+	}
+
+	// Final answer
+	var result []int
+	for _, query := range queries {
+		left, right := query[0], query[1]
+
+		leftIndex := bisectRight(segments, left) - 1
+		rightIndex := bisectRight(segments, right) - 1
+
+		if rightIndex-leftIndex+1 <= 2 {
+			result = append(result, activeCount)
+			continue
+		}
+
+		getSegmentSize := func(i int) int {
+			if i == leftIndex {
+				return segments[i].length - (left - segments[i].start)
+			}
+			if i == rightIndex {
+				return right - segments[i].start + 1
+			}
+			return segments[i].length
+		}
+
+		calculateNewSections := func(i int) int {
+			if i < 0 || i+2 >= segCount || s[segments[i].start] == '1' {
+				return NEG_INF
+			}
+			return getSegmentSize(i) + getSegmentSize(i+2)
+		}
+
+		bestIncrease := max(getMaxInRange(leftIndex+1, rightIndex-3), 0)
+		bestIncrease = max(bestIncrease, calculateNewSections(leftIndex))
+		bestIncrease = max(bestIncrease, calculateNewSections(rightIndex-2))
+
+		result = append(result, activeCount+bestIncrease)
+	}
+
+	return result
+}
+
+// Utility functions
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
